@@ -1,6 +1,6 @@
 # NativeCommandCompleter
 
-PowerShell Module of Native command helper fow Windows.
+PowerShell Module of Native command helper for Windows.
 
 Windows のネイティブコマンド(.exe)用の ArgumentCompleter を集約した PowerShell モジュールです。
 
