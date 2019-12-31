@@ -18,8 +18,38 @@ using namespace System.Management.Automation
 [CompletionResult[]]$result = $null
 [array]$expect = $null
 Describe "psr test" {
-    Context "ParamValue" {
-        It "01" {
+    Context "Disable Completion Parameter" {
+        It "Last" {
+            # Arrange
+            $cmdLn = 'psr.exe /output'
+            $cursorPos = $cmdLn
+            # Act
+            $result = @(& $completer '' $cmdLn $cursorPos.Length)
+            # Assert
+            $expect = @()
+            $result.Length | Should Be $expect.Length
+            0..($result.Length - 1) |
+                ForEach-Object -Process {
+                    $result[$_] | Should Be $expect[$_]
+                }
+        }
+        It "UserInputing" {
+            # Arrange
+            $cmdLn = 'psr.exe /output .\'
+            $cursorPos = $cmdLn
+            # Act
+            $result = @(& $completer '.\' $cmdLn $cursorPos.Length)
+            # Assert
+            $expect = @()
+            $result.Length | Should Be $expect.Length
+            0..($result.Length - 1) |
+                ForEach-Object -Process {
+                    $result[$_] | Should Be $expect[$_]
+                }
+        }
+    }
+    Context "On Off Parameter" {
+        It "Last" {
             # Arrange
             $cmdLn = 'psr.exe /sc'
             $cursorPos = $cmdLn
@@ -35,7 +65,6 @@ Describe "psr test" {
                 ForEach-Object -Process {
                     $result[$_].CompletionText | Should Be $expect[$_]
                 }
-            
         }
     }
 }
