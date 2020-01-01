@@ -7,6 +7,7 @@ Windows のネイティブコマンド(.exe)用の ArgumentCompleter を集約�
 ## Support PowerShell
 
 - Windows PowerShell 5.1-
+- PowerShell Core 6.2
 
 ## Support Command
 
