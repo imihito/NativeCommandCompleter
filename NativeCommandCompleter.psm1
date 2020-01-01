@@ -2,6 +2,7 @@
     [ValidateNotNullOrEmpty()]
     [string[]]$CommandName = @(
         'psr'
+        'pwsh'
     )
 )
 Set-StrictMode -Version Latest
