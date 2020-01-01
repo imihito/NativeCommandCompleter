@@ -12,7 +12,7 @@ Windows のネイティブコマンド(.exe)用の ArgumentCompleter を集約�
 
 |Command name|Description|
 |:-----------|:----------|
-|psr.exe     |Process step recorder <br /> ステップ記録ツール|
+|psr.exe     |Problem Steps Recorder <br /> ステップ記録ツール|
 
 ## Reference
 
