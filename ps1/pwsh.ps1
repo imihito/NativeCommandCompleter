@@ -30,6 +30,7 @@ using namespace System.Management.Automation.Language
         Where-Object -FilterScript {
             $_.EndOffset   -ge $cursorPosition
         } | ForEach-Object -Process {$_.Text}
+    
     [scriptblock]$findSwitchIndex = {
         [OutputType([int])]
         param (
@@ -45,6 +46,20 @@ using namespace System.Management.Automation.Language
         return -1
     }
     
+    [scriptblock]$filterListOrAllIfNotMatch = {
+        param (
+            [string[]]$InputObject,
+            [string]$FilterValue
+        )
+        [string]$ptn = [regex]::Unescape($FilterValue)
+        [string[]]$result = $InputObject.Where({$_ -imatch $ptn})
+        if ($result.Length -ne 0) {
+            return $result
+        } else {
+            return $InputObject
+        }
+    }
+
     # カーソル直前までのコマンド文字列。
     #[string]$beforeCursorTxt = $wordToComplete.Substring(0, [Math]::Min($cursorPosition, $wordToComplete.Length))
     
@@ -63,7 +78,7 @@ using namespace System.Management.Automation.Language
     
     switch (& $findSwitchIndex $beforeCursorAsts '-File') {
         -1 {break}
-        $beforeCursorAsts.Length {
+        ($beforeCursorAsts.Length - 1) {
             # 最後だったら
             Get-ChildItem -LiteralPath $PWD.ProviderPath -Filter '*.ps1' -Include '*.ps1' -File -Name -Recurse -Depth 3 |
                 Select-Object -First 20 |
@@ -96,20 +111,27 @@ using namespace System.Management.Automation.Language
         }
     }
     
-    if ($lastToken -ieq '-ExecutionPolicy' -and [string]::IsNullOrEmpty($cursorToken)) {
-        # ExecutionPolicy の指定
-        [Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]).ForEach({
-            [CompletionResult]::new(
-                $_,
-                $_,
-                [CompletionResultType]::ParameterValue,
-                $_
-            )
-        })
-        return
+    switch (& $findSwitchIndex $beforeCursorAsts '-ExecutionPolicy') {
+        -1 {break}
+        ($beforeCursorAsts.Length - 1) {
+            # カーソルの直前が ExecutionPolicy の場合
+            [Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]).ForEach({
+                [CompletionResult]::new($_, $_, [CompletionResultType]::ParameterValue, $_)
+            })
+            return
+        }
+        ($beforeCursorAsts.Length - 2) {
+            $filterListOrAllIfNotMatch.Invoke(
+                [Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]),
+                $commandName
+            ).ForEach({
+                [CompletionResult]::new($_, $_, [CompletionResultType]::ParameterValue, $_)
+            })
+            return
+        }
     }
 
-    # psr.exe 以降のテキスト(≒スイッチの部分)を取得。
+    # .exe 以降のテキスト(≒スイッチの部分)を取得。
     [string]$afterCommandTxt = $wordToComplete.Extent.Text.Substring(
         $wordToComplete.Extent.Text.IndexOf('.exe', [StringComparison]::OrdinalIgnoreCase) + '.exe'.Length
     )

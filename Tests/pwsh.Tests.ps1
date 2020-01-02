@@ -23,10 +23,11 @@ Describe 'powershell.exe' {
     Context 'Parameter Name' {
         It 'All' {
             # Arrange
-            $wordToComplete     = {powershell.exe}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $commandName    = ''
+            $wordToComplete = {powershell.exe}.Ast.EndBlock.Statements[0].PipelineElements[0]
             $cursorPosition = $wordToComplete.Extent.EndOffset
             # Act
-            $result = @(& $completer '' $wordToComplete $cursorPosition)
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
             # Assert
             $expect = @(
                 '-File'
@@ -43,10 +44,11 @@ Describe 'powershell.exe' {
     Context 'Disable Completion Parameter' {
         It 'Command1' {
             # Arrange
-            $wordToComplete     = {powershell.exe -Command}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $commandName    = ''
+            $wordToComplete = {powershell.exe -Command}.Ast.EndBlock.Statements[0].PipelineElements[0]
             $cursorPosition = $wordToComplete.Extent.EndOffset
             # Act
-            $result = @(& $completer '' $wordToComplete $cursorPosition)
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
             # Assert
             $expect = @()
             $result.Length | Should Be $expect.Length
@@ -57,10 +59,11 @@ Describe 'powershell.exe' {
         }
         It 'Command2' {
             # Arrange
-            $wordToComplete     = {powershell.exe -NoProfile -Command}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $commandName    = ''
+            $wordToComplete = {powershell.exe -NoProfile -Command}.Ast.EndBlock.Statements[0].PipelineElements[0]
             $cursorPosition = $wordToComplete.Extent.EndOffset
             # Act
-            $result = @(& $completer '' $wordToComplete $cursorPosition)
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
             # Assert
             $expect = @()
             $result.Length | Should Be $expect.Length
@@ -72,10 +75,11 @@ Describe 'powershell.exe' {
 
         It 'Command3' {
             # Arrange
-            $wordToComplete     = {powershell.exe -Command Get-ChildItem}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $commandName    = ''
+            $wordToComplete = {powershell.exe -Command Get-ChildItem}.Ast.EndBlock.Statements[0].PipelineElements[0]
             $cursorPosition = $wordToComplete.Extent.EndOffset
             # Act
-            $result = @(& $completer '' $wordToComplete $cursorPosition)
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
             # Assert
             $expect = @()
             $result.Length | Should Be $expect.Length
@@ -89,12 +93,49 @@ Describe 'powershell.exe' {
     Context 'ExecutionPolicy' {
         It 'Is last parameter' {
             # Arrange
-            $wordToComplete     = {powershell.exe -ExecutionPolicy}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $commandName    = ''
+            $wordToComplete = {powershell.exe -ExecutionPolicy}.Ast.EndBlock.Statements[0].PipelineElements[0]
             $cursorPosition = $wordToComplete.Extent.EndOffset + 1
             # Act
-            $result = @(& $completer '' $wordToComplete $cursorPosition)
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
             # Assert
             $expect = @([System.Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]))
+            $result.Length | Should Be $expect.Length
+            0..($result.Length - 1) |
+                ForEach-Object -Process {
+                    $result[$_].CompletionText | Should Be $expect[$_]
+                }
+        }
+        It 'User inputting.' {
+            # Arrange
+            $commandName    = 'remote'
+            $wordToComplete = {powershell.exe -ExecutionPolicy remote}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $cursorPosition = $wordToComplete.Extent.EndOffset
+            # Act
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
+            # Assert
+            $expect = @(
+                [System.Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]).Where({
+                    $_ -imatch $commandName
+                })
+            )
+            $result.Length | Should Be $expect.Length
+            0..($result.Length - 1) |
+                ForEach-Object -Process {
+                    $result[$_].CompletionText | Should Be $expect[$_]
+                }
+        }
+        It 'User input is invalid.' {
+            # Arrange
+            $commandName    = 'aaa'
+            $wordToComplete = {powershell.exe -ExecutionPolicy remote}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $cursorPosition = $wordToComplete.Extent.EndOffset
+            # Act
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
+            # Assert
+            $expect = @(
+                [System.Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy])
+            )
             $result.Length | Should Be $expect.Length
             0..($result.Length - 1) |
                 ForEach-Object -Process {
