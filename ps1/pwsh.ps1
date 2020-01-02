@@ -31,7 +31,8 @@ using namespace System.Management.Automation.Language
     [hashtable]$tooltipInfo = 
         Import-LocalizedData -BaseDirectory "$PSScriptRoot\rsc"
     
-    if ($beforeCursorTxt -imatch ' -Command *') {
+    if ($beforeCursorTxt -imatch '\.exe(?: .*)? -Command(?: |$)') {
+        # カーソルが -Command より後ろにあれば、自前の補完は無効にする。
         return
     }
 

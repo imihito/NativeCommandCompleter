@@ -67,5 +67,20 @@ Describe 'powershell.exe' {
                     $result[$_].CompletionText | Should Be $expect[$_]
                 }
         }
+
+        It 'Command3' {
+            # Arrange
+            $cmdLn     = 'powershell.exe -Command Get-ChildItem'
+            $cursorPos = $cmdLn
+            # Act
+            $result = @(& $completer '' $cmdLn $cursorPos.Length)
+            # Assert
+            $expect = @()
+            $result.Length | Should Be $expect.Length
+            0..($result.Length - 1) |
+                ForEach-Object -Process {
+                    $result[$_].CompletionText | Should Be $expect[$_]
+                }
+        }
     }
 }
