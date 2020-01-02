@@ -20,23 +20,16 @@ using namespace System.Management.Automation.Language
         [Parameter(Position = 2)]
         [int]$cursorPosition
     )
-    [CommandElementAst[]]$beforeCursorAsts = @($wordToComplete.CommandElements |
+    # カーソルまでの CommandElementAst(includes cursor position ast)。astsOfBeforeCursor
+    [CommandElementAst[]]$astsOfBeforeCursor = @($wordToComplete.CommandElements |
         Where-Object -FilterScript {
             $_.Extent.StartOffset -le $cursorPosition
         }
     )
-    [string]$lastToken   = [string]($beforeCursorAsts.Extent.Text | Select-Object -Last 1)
-    [string]$cursorToken = $beforeCursorAsts.Extent |
-        Where-Object -FilterScript {
-            $_.EndOffset   -ge $cursorPosition
-        } | ForEach-Object -Process {$_.Text}
-    
+
+    # [CommandElementAst[]] から指定した値の物を探す(IgnoreCase)。
     [scriptblock]$findSwitchIndex = {
-        [OutputType([int])]
-        param (
-            [CommandElementAst[]]$CmdAst, 
-            [string]$FindValue
-        )
+        [OutputType([int])]param ([CommandElementAst[]]$CmdAst, [string]$FindValue)
         [int]$i = 0
         foreach ($i in 0..($CmdAst.Length - 1)) {
             if ($CmdAst[$i].Extent.Text -ieq $FindValue) {
@@ -47,10 +40,7 @@ using namespace System.Management.Automation.Language
     }
     
     [scriptblock]$filterListOrAllIfNotMatch = {
-        param (
-            [string[]]$InputObject,
-            [string]$FilterValue
-        )
+        [OutputType([string])]param ([string[]]$InputObject, [string]$FilterValue)
         [string]$ptn = [regex]::Unescape($FilterValue)
         [string[]]$result = $InputObject.Where({$_ -imatch $ptn})
         if ($result.Length -ne 0) {
@@ -60,28 +50,22 @@ using namespace System.Management.Automation.Language
         }
     }
 
-    # カーソル直前までのコマンド文字列。
-    #[string]$beforeCursorTxt = $wordToComplete.Substring(0, [Math]::Min($cursorPosition, $wordToComplete.Length))
-    
     [string[]]$allSwitchs = @(
         '-File'
         '-Command'
         '-ExecutionPolicy'
     )
-    [hashtable]$tooltipInfo = 
-        Import-LocalizedData -BaseDirectory "$PSScriptRoot\rsc"
+    [hashtable]$tooltipInfo = Import-LocalizedData -BaseDirectory "$PSScriptRoot\rsc"
     
-    if ($beforeCursorAsts.Extent.Text -icontains '-Command') {
-        # カーソルが -Command より後ろにあれば、自前の補完は無効にする。
-        return
+    if ($astsOfBeforeCursor.Extent.Text -icontains '-Command') {
+        return # カーソルが -Command より後ろにあれば、自前の補完は無効にする。
     }
     
-    switch (& $findSwitchIndex $beforeCursorAsts '-File') {
+    switch (& $findSwitchIndex $astsOfBeforeCursor '-File') {
         -1 {break}
-        ($beforeCursorAsts.Length - 1) {
-            # 最後だったら
+        ($astsOfBeforeCursor.Length - 1) {# -File の直後の場合。
             Get-ChildItem -LiteralPath $PWD.ProviderPath -Filter '*.ps1' -Include '*.ps1' -File -Name -Recurse -Depth 3 |
-                Select-Object -First 20 |
+                Select-Object -First 20 | # 多すぎると PSReadLine の候補表示がうまくいかないため。
                 ForEach-Object -Process {
                     [CompletionResult]::new(
                         "'.\" + [CodeGeneration]::EscapeSingleQuotedStringContent($_) + "'",
@@ -94,8 +78,8 @@ using namespace System.Management.Automation.Language
                 }
             return
         }
-        Default {
-            [CommandElementAst]$maybeFilePathAst = $beforeCursorAsts[$_ + 1]
+        Default { # -File 以降かつ、-File に何か指定している場合。
+            [CommandElementAst]$maybeFilePathAst = $astsOfBeforeCursor[$_ + 1]
             (Get-Command -Name $maybeFilePathAst.SafeGetValue()).Parameters.GetEnumerator() |
             ForEach-Object -Process {
                 [ParameterMetadata]$meta = $_.Value
@@ -111,16 +95,15 @@ using namespace System.Management.Automation.Language
         }
     }
     
-    switch (& $findSwitchIndex $beforeCursorAsts '-ExecutionPolicy') {
+    switch (& $findSwitchIndex $astsOfBeforeCursor '-ExecutionPolicy') {
         -1 {break}
-        ($beforeCursorAsts.Length - 1) {
-            # カーソルの直前が ExecutionPolicy の場合
+        ($astsOfBeforeCursor.Length - 1) { # -ExecutionPolicy の直後の場合。
             [Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]).ForEach({
                 [CompletionResult]::new($_, $_, [CompletionResultType]::ParameterValue, $_)
             })
             return
         }
-        ($beforeCursorAsts.Length - 2) {
+        ($astsOfBeforeCursor.Length - 2) {
             $filterListOrAllIfNotMatch.Invoke(
                 [Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]),
                 $commandName
