@@ -69,6 +69,8 @@ using namespace System.Management.Automation.Language
         '-File'
         '-Command'
         '-ExecutionPolicy'
+        '-NoProfile'
+        '-NoExit'
     )
     [hashtable]$tooltipInfo = Import-LocalizedData -BaseDirectory "$PSScriptRoot\rsc"
     

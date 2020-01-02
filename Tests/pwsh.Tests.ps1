@@ -33,6 +33,8 @@ Describe 'powershell.exe' {
                 '-File'
                 '-Command'
                 '-ExecutionPolicy'
+                '-NoProfile'
+                '-NoExit'
             )
             $result.Length | Should Be $expect.Length
             0..($result.Length - 1) |
