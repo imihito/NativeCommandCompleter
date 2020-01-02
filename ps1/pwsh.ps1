@@ -50,6 +50,21 @@ using namespace System.Management.Automation.Language
         }
     }
 
+    function New-CompletionResult {
+        [OutputType([System.Management.Automation.CompletionResult])]param (
+            [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+            [string]$CompletionText,
+            [CompletionResultType]$ResultType = [CompletionResultType]::ParameterValue,
+            [Parameter(ValueFromPipeline = $true)]
+            [string]$ListItemText = [string]::Empty,
+            [Parameter(ValueFromPipeline = $true)]
+            [string]$ToolTip      = [string]::Empty
+        )
+        process {
+            [CompletionResult]::new($CompletionText, $ListItemText, $ResultType, $ToolTip)
+        }
+    }
+
     [string[]]$allSwitchs = @(
         '-File'
         '-Command'
@@ -66,16 +81,21 @@ using namespace System.Management.Automation.Language
         ($astsOfBeforeCursor.Length - 1) {# -File の直後の場合。
             Get-ChildItem -LiteralPath $PWD.ProviderPath -Filter '*.ps1' -Include '*.ps1' -File -Name -Recurse -Depth 3 |
                 Select-Object -First 20 | # 多すぎると PSReadLine の候補表示がうまくいかないため。
-                ForEach-Object -Process {
-                    [CompletionResult]::new(
-                        "'.\" + [CodeGeneration]::EscapeSingleQuotedStringContent($_) + "'",
-                        [IO.Path]::GetFileName($_),
-                        [CompletionResultType]::Command,
-                        [IO.Path]::Combine($PWD.ProviderPath, $_)
+                New-CompletionResult -CompletionText {
+                    "'.\" + [CodeGeneration]::EscapeSingleQuotedStringContent($_) + "'"
+                } -ListItemText {
+                    [IO.Path]::GetFileName($_)
+                } -ToolTip {
+                    [IO.Path]::Combine($PWD.ProviderPath, $_) + $(
+                        try {
+                            "`n" + (
+                                (Get-Command -Name ".\$_").ParameterSets.ForEach({$_.ToString()}) -join "`n`n"
+                            )
+                        } catch {
+                            ''
+                        }
                     )
-                    # TODO
-                    # .ParameterSets[0].ToString()
-                }
+                } -ResultType Command
             return
         }
         Default { # -File 以降かつ、-File に何か指定している場合。
@@ -84,12 +104,7 @@ using namespace System.Management.Automation.Language
             ForEach-Object -Process {
                 [ParameterMetadata]$meta = $_.Value
                 [string]$toolTip = '[{0}] {1}' -f $meta.ParameterType.Name, $_.Key
-                [CompletionResult]::new(
-                    '-' + $_.Key,
-                    $_.Key,
-                    [CompletionResultType]::ParameterValue,
-                    $toolTip
-                )
+                New-CompletionResult -CompletionText "-$($_.Key)" -ListItemText $_.Key -ToolTip $toolTip -ResultType ParameterName
             }
             return
         }
@@ -98,26 +113,20 @@ using namespace System.Management.Automation.Language
     switch (& $findSwitchIndex $astsOfBeforeCursor '-ExecutionPolicy') {
         -1 {break}
         ($astsOfBeforeCursor.Length - 1) { # -ExecutionPolicy の直後の場合。
-            [Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]).ForEach({
-                [CompletionResult]::new($_, $_, [CompletionResultType]::ParameterValue, $_)
-            })
+            [Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]) |
+                New-CompletionResult -ResultType ParameterValue
             return
         }
         ($astsOfBeforeCursor.Length - 2) {
+            if ([string]::IsNullOrEmpty($commandName)) {break}
             $filterListOrAllIfNotMatch.Invoke(
                 [Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy]),
                 $commandName
-            ).ForEach({
-                [CompletionResult]::new($_, $_, [CompletionResultType]::ParameterValue, $_)
-            })
+            ) | New-CompletionResult -ResultType ParameterValue
             return
         }
     }
 
-    # .exe 以降のテキスト(≒スイッチの部分)を取得。
-    [string]$afterCommandTxt = $wordToComplete.Extent.Text.Substring(
-        $wordToComplete.Extent.Text.IndexOf('.exe', [StringComparison]::OrdinalIgnoreCase) + '.exe'.Length
-    )
     # 今の位置のスイッチ or 入力中の文字列にマッチするスイッチを取得。
     [string[]]$showSwitchs = @(
         # 補完開始位置にすでにスイッチがあればそれを優先。
@@ -132,13 +141,12 @@ using namespace System.Management.Automation.Language
     )
     if ($showSwitchs.Length -eq 0) {
         # 入力中の文字列が無かったり、マッチするスイッチが無かった場合は、指定していないスイッチ全部。
-        $showSwitchs = $allSwitchs.Where({$afterCommandTxt -inotmatch [regex]::Unescape($_)}).ForEach({$_.ToString()})
+        [string[]]$assginedParams = $wordToComplete.CommandElements.Extent.Text
+        $showSwitchs = $allSwitchs.Where({$assginedParams -inotcontains $_}).ForEach({$_.ToString()})
     }
     $showSwitchs | 
         Select-Object -Unique | 
-        ForEach-Object -Process {
-            [CompletionResult]::new($_, $_, [CompletionResultType]::ParameterName, $tooltipInfo[$_])
-        }
+        New-CompletionResult -ResultType ParameterName -ToolTip {$tooltipInfo[$_]}
     return
 }
 
