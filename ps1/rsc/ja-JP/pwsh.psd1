@@ -82,43 +82,29 @@ PowerShell プロファイルを読み込みません。
 -WindowStyle Normal | Minimized | Maximized | Hidden
 ウィンドウ スタイルを Normal、Minimized、Maximized、または Hidden に設定します。
 '@
-    <#
+<#
+# Common parameter
+[-EncodedCommand <Base64EncodedCommand>]
 [-ConfigurationName <string>]
-pwsh[.exe]
-    # pwsh.exe only
-    [-CustomPipeName <string>]
-
-
-    [-EncodedCommand <Base64EncodedCommand>]
-   
-   [-InputFormat {Text | XML}]
-   [-Interactive]
-   [-NoLogo]
-   [-NonInteractive]
-   [-OutputFormat {Text | XML}]
-   # pwsh.exe only
-   [-SettingsFile <SettingsFilePath>]
-   # powershell / pwsh.exe different
-   [-Version]
-   # pwsh.exe only
-   [-WorkingDirectory <directoryPath>]
-
-pwsh[.exe] -h | -Help | -? | /?
-
-[-PSConsoleFile <file> | -Version <version>]
-[-NoLogo]
-
-[-Sta]
-[-Mta]
-[-NonInteractive]
 [-InputFormat {Text | XML}]
 [-OutputFormat {Text | XML}]
+[-NoLogo]
+[-NonInteractive]
 
-[-EncodedCommand <Base64EncodedCommand>]
+# powershell / pwsh.exe different
+[-Version]
 
+# powershell.exe only
+[-PSConsoleFile <file> | -Version <version>]
+[-Sta]
+[-Mta]
+# pwsh.exe only
+[-Interactive]
+[-CustomPipeName <string>]
+[-SettingsFile <SettingsFilePath>]
+[-WorkingDirectory <directoryPath>]
 
-
-
+pwsh[.exe] -h | -Help | -? | /?
 PowerShell[.exe] -Help | -? | /?
 
 #>

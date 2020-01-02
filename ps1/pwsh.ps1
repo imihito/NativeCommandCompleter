@@ -154,22 +154,29 @@ using namespace System.Management.Automation.Language
     }
     #endregion
     #region Parameter
+    [string[]]$assginedParams = $wordToComplete.CommandElements.Extent.Text
     # 今の位置のスイッチ or 入力中の文字列にマッチするスイッチを取得。
     [string[]]$showSwitchs = @(
         # 補完開始位置にすでにスイッチがあればそれを優先。
         if ($tooltipInfo.Contains($commandName)) {
             $commandName
         }
-        $allSwitchs.Where({
+        [string[]]$tmpFilterdSwitch = $allSwitchs
+        [string[]]$exclusiveSwitch = @('-Command', '-File')
+        # any contains.
+        if ($exclusiveSwitch.Where({$assginedParams -icontains $_}).Count -ne 0) {
+            $tmpFilterdSwitch = $allSwitchs.Where({$_ -inotin $exclusiveSwitch})
+        }
+        
+        $tmpFilterdSwitch.Where({
             # まだ指定されていないスイッチかつ、入力中の文字列に一致するものを探す。
-            (& $findSwitchIndex $wordToComplete.CommandElements $_) -eq -1 -and
+            ($assginedParams -inotcontains $_) -and
             $_ -imatch [regex]::Unescape($commandName)    
         })
     )
     if ($showSwitchs.Length -eq 0) {
         # 入力中の文字列が無かったり、マッチするスイッチが無かった場合は、指定していないスイッチ全部。
-        [string[]]$assginedParams = $wordToComplete.CommandElements.Extent.Text
-        $showSwitchs = $allSwitchs.Where({$assginedParams -inotcontains $_}).ForEach({$_.ToString()})
+        $showSwitchs = $tmpFilterdSwitch.Where({$assginedParams -inotcontains $_}).ForEach({$_.ToString()})
     }
     $showSwitchs | 
         Select-Object -Unique | 
