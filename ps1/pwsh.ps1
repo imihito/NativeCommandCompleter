@@ -71,13 +71,17 @@ using namespace System.Management.Automation.Language
         '-ExecutionPolicy'
         '-NoProfile'
         '-NoExit'
+        '-WindowStyle'
     )
     [hashtable]$tooltipInfo = Import-LocalizedData -BaseDirectory "$PSScriptRoot\rsc"
     
+    #region -Command
     if ($astsOfBeforeCursor.Extent.Text -icontains '-Command') {
         return # カーソルが -Command より後ろにあれば、自前の補完は無効にする。
     }
-    
+    #endregion
+
+    #region -File
     switch (& $findSwitchIndex $astsOfBeforeCursor '-File') {
         -1 {break}
         ($astsOfBeforeCursor.Length - 1) {# -File の直後の場合。
@@ -111,7 +115,9 @@ using namespace System.Management.Automation.Language
             return
         }
     }
+    #endregion
     
+    #region -ExecutionPolicy
     switch (& $findSwitchIndex $astsOfBeforeCursor '-ExecutionPolicy') {
         -1 {break}
         ($astsOfBeforeCursor.Length - 1) { # -ExecutionPolicy の直後の場合。
@@ -128,7 +134,26 @@ using namespace System.Management.Automation.Language
             return
         }
     }
-
+    #endregion
+    #region -WindowStyle
+    switch (& $findSwitchIndex $astsOfBeforeCursor '-WindowStyle') {
+        -1 {break}
+        ($astsOfBeforeCursor.Length - 1) { # -WindowStyle の直後の場合。
+            [Enum]::GetNames([Diagnostics.ProcessWindowStyle]) |
+                New-CompletionResult -ResultType ParameterValue
+            return
+        }
+        ($astsOfBeforeCursor.Length - 2) {
+            if ([string]::IsNullOrEmpty($commandName)) {break}
+            $filterListOrAllIfNotMatch.Invoke(
+                [Enum]::GetNames([Diagnostics.ProcessWindowStyle]),
+                $commandName
+            ) | New-CompletionResult -ResultType ParameterValue
+            return
+        }
+    }
+    #endregion
+    #region Parameter
     # 今の位置のスイッチ or 入力中の文字列にマッチするスイッチを取得。
     [string[]]$showSwitchs = @(
         # 補完開始位置にすでにスイッチがあればそれを優先。
@@ -150,6 +175,7 @@ using namespace System.Management.Automation.Language
         Select-Object -Unique | 
         New-CompletionResult -ResultType ParameterName -ToolTip {$tooltipInfo[$_]}
     return
+    #endregion
 }
 
 Register-ArgumentCompleter -CommandName powershell.exe, pwsh.exe -Native -ScriptBlock $pwshCompleter

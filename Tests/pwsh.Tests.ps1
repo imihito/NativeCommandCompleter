@@ -35,6 +35,7 @@ Describe 'powershell.exe' {
                 '-ExecutionPolicy'
                 '-NoProfile'
                 '-NoExit'
+                '-WindowStyle'
             )
             $result.Length | Should Be $expect.Length
             0..($result.Length - 1) |
@@ -130,13 +131,66 @@ Describe 'powershell.exe' {
         It 'User input is invalid.' {
             # Arrange
             $commandName    = 'aaa'
-            $wordToComplete = {powershell.exe -ExecutionPolicy remote}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $wordToComplete = {powershell.exe -ExecutionPolicy aaa}.Ast.EndBlock.Statements[0].PipelineElements[0]
             $cursorPosition = $wordToComplete.Extent.EndOffset
             # Act
             $result = @(& $completer $commandName $wordToComplete $cursorPosition)
             # Assert
             $expect = @(
                 [System.Enum]::GetNames([Microsoft.PowerShell.ExecutionPolicy])
+            )
+            $result.Length | Should Be $expect.Length
+            0..($result.Length - 1) |
+                ForEach-Object -Process {
+                    $result[$_].CompletionText | Should Be $expect[$_]
+                }
+        }
+    }
+
+    Context 'WindowStyle' {
+        It 'Is last parameter' {
+            # Arrange
+            $commandName    = ''
+            $wordToComplete = {powershell.exe -WindowStyle}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $cursorPosition = $wordToComplete.Extent.EndOffset + 1
+            # Act
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
+            # Assert
+            $expect = @([System.Enum]::GetNames([System.Diagnostics.ProcessWindowStyle]))
+            $result.Length | Should Be $expect.Length
+            0..($result.Length - 1) |
+                ForEach-Object -Process {
+                    $result[$_].CompletionText | Should Be $expect[$_]
+                }
+        }
+        It 'User inputting.' {
+            # Arrange
+            $commandName    = 'ma'
+            $wordToComplete = {powershell.exe -WindowStyle ma}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $cursorPosition = $wordToComplete.Extent.EndOffset
+            # Act
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
+            # Assert
+            $expect = @(
+                'Normal'
+                'Maximized'
+            )
+            $result.Length | Should Be $expect.Length
+            0..($result.Length - 1) |
+                ForEach-Object -Process {
+                    $result[$_].CompletionText | Should Be $expect[$_]
+                }
+        }
+        It 'User input is invalid.' {
+            # Arrange
+            $commandName    = 'aaa'
+            $wordToComplete = {powershell.exe -WindowStyle aaa}.Ast.EndBlock.Statements[0].PipelineElements[0]
+            $cursorPosition = $wordToComplete.Extent.EndOffset
+            # Act
+            $result = @(& $completer $commandName $wordToComplete $cursorPosition)
+            # Assert
+            $expect = @(
+                [System.Enum]::GetNames([System.Diagnostics.ProcessWindowStyle])
             )
             $result.Length | Should Be $expect.Length
             0..($result.Length - 1) |
