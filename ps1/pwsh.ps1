@@ -45,17 +45,21 @@ using namespace System.Management.Automation.Language
                     [CompletionResultType]::Command,
                     [IO.Path]::Combine($PWD.ProviderPath, $_)
                 )
+                # TODO
+                # .ParameterSets[0].ToString()
             }
         return
     }
-    if ($beforeCursorTxt -imatch ' -File +["'']?(.+\.ps1)["'']?$') {
+    if ($beforeCursorTxt -imatch '\.exe(?: .*)? -File +["'']?(.+\.ps1)["'']' -and [string]::IsNullOrWhiteSpace($paramName)) {
         (Get-Command -Name $Matches[1]).Parameters.GetEnumerator() |
             ForEach-Object -Process {
+                [ParameterMetadata]$meta = $_.Value
+                [string]$toolTip = '[{0}] {1}' -f $meta.ParameterType.Name, $_.Key
                 [CompletionResult]::new(
                     '-' + $_.Key,
                     $_.Key,
                     [CompletionResultType]::ParameterValue,
-                    $_.Key
+                    $toolTip
                 )
             }
         return
@@ -63,7 +67,7 @@ using namespace System.Management.Automation.Language
 
     # psr.exe 以降のテキスト(≒スイッチの部分)を取得。
     [string]$afterCommandTxt = $wordToComplete.Substring(
-        $wordToComplete.IndexOf('powershell.exe', [StringComparison]::OrdinalIgnoreCase)
+        $wordToComplete.IndexOf('.exe', [StringComparison]::OrdinalIgnoreCase) + '.exe'.Length
     )
     # 今の位置のスイッチ or 入力中の文字列にマッチするスイッチを取得。
     [string[]]$showSwitchs = @(
