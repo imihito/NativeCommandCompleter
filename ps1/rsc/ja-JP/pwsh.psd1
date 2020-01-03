@@ -49,15 +49,16 @@ https://docs.microsoft.com/ja-jp/powershell/module/Microsoft.PowerShell.Core/Abo
 https://docs.microsoft.com/ja-jp/powershell/module/Microsoft.PowerShell.Core/About/about_pwsh?view=powershell-6
 #>
 @{
+    #region # powershell.exe / pwsh.exe Common Parameters
     # 指定された場合、直後の補完では ps1 ファイルだけを表示する。何か入力されたら補完は停止する。
     # ps1ファイルが指定されたことを検知したら、パラメータを表示してもいいかも？
-    '-File'            = @'
+    '-File'              = @'
 -File - | <filePath> <args>
 指定されたスクリプトをローカル スコープ ("ドット ソース") で実行して、スクリプトによって作成された関数と変数を現在のセッションで使用できるようにします。スクリプト ファイルのパスとパラメーターを入力します。
 File はコマンド内で最後のパラメーターである必要があります。File パラメーター名の後に入力された文字は、スクリプト ファイルのパスとスクリプトのパラメーターとして解釈されるためです。
 '@
     # 指定された場合、以降の補完は停止する。
-    '-Command'         = @'
+    '-Command'           = @'
 -Command - | { <script-block> [-args <arg-array>] }
            | { <string> [<CommandParameters>] } 
 PowerShell のコマンド プロンプトに入力された場合と同様に、指定されたコマンド (および任意のパラメーター) を実行します。NoExit が指定されていない場合は、そのまま終了します。Command の値には、"-"、文字列、またはスクリプトブロックを指定できます。
@@ -65,32 +66,81 @@ Command の値が "-" の場合、コマンド テキストは標準入力から
 Command の値がスクリプト ブロックの場合は、スクリプト ブロックを中かっこ({}) で囲む必要があります。スクリプト ブロックを指定できるのは、PowerShell で PowerShell.exe を実行している場合だけです。スクリプト ブロックの結果は、ライブ オブジェクトではなく逆シリアル化 XML オブジェクトとして親シェルに返されます。
 Command の値が文字列の場合、Command はコマンド内で最後のパラメーターである必要があります。コマンドの後に入力された文字は、コマンド引数として解釈されるためです。
 '@
-    '-ExecutionPolicy' = @'
--ExecutionPolicy Unrestricted | RemoteSigned | AllSigned | Restricted | Restricted | Bypass | Undefined
+    '-ExecutionPolicy'   = @'
+-ExecutionPolicy {Unrestricted | RemoteSigned | AllSigned | Restricted | Restricted | Bypass | Undefined}
 現在のセッションの既定の実行ポリシーを設定し、$env:PSExecutionPolicyPreference 環境変数に保存します。
 このパラメーターでは、レジストリに設定されている PowerShell 実行ポリシーは変更されません。
 '@
-    '-NoProfile'       = @'
+    '-NoProfile'         = @'
 -NoProfile
 PowerShell プロファイルを読み込みません。
 '@
-    '-NoExit'          = @'
+    '-NoExit'            = @'
 -NoExit
 スタートアップ コマンドを実行後、終了しません。
 '@
-    '-WindowStyle'     = @'
--WindowStyle Normal | Minimized | Maximized | Hidden
+    '-WindowStyle'       = @'
+-WindowStyle {Normal | Minimized | Maximized | Hidden}
 ウィンドウ スタイルを Normal、Minimized、Maximized、または Hidden に設定します。
 '@
-<#
-# Common parameter
-[-EncodedCommand <Base64EncodedCommand>]
-[-ConfigurationName <string>]
-[-InputFormat {Text | XML}]
-[-OutputFormat {Text | XML}]
-[-NoLogo]
-[-NonInteractive]
-
+    '-EncodedCommand'    = @'
+-EncodedCommand <Base64EncodedCommand>
+Base-64 エンコードの文字列のコマンドを受け付けます。複雑な引用符や中かっこが必要なコマンドを PowerShell に送るには、このパラメーターを使用します。
+文字列は UTF-16LE の形式でエンコードする必要があります。
+'@
+    '-InputFormat'       = @'
+-InputFormat {Text | XML}
+PowerShell に送られたデータの形式を指定します。
+有効な値は、"Text"(テキスト文字列) または "XML" (シリアル化 CLIXML 形式) です。
+'@
+    '-OutputFormat'      = @'
+-OutputFormat {Text | XML}
+PowerShell からの出力の形式を決定します。
+有効な値は、"Text" (テキスト文字列) または "XML" (シリアル化 CLIXML 形式) です。
+'@
+    '-NoLogo'            = @'
+-NoLogo
+スタートアップ時に著作権の見出しを非表示にします。
+'@
+    '-NonInteractive'    = @'
+-NonInteractive
+ユーザーに対話的なプロンプトを表示しません。
+'@
+    '-ConfigurationName' = @'
+-ConfigurationName <string>
+PowerShell が実行される構成エンドポイントを指定します。
+ローカル コンピューターに登録された任意のエンドポイントを指定できます。
+たとえば、既定の PowerShell リモート処理エンドポイントや、特定のユーザー機能を持つカスタム エンドポイントなどを指定できます。
+'@
+    '-Help'              = @'
+-Help | -? | /?
+ヘルプメッセージを表示します。
+'@
+    #endregion
+    #region # powershell.exe only parameters
+    '-Sta'               = @'
+-Sta
+シングルスレッド アパートメントを使用して、シェルを起動します。
+既定ではシングルスレッド アパートメント (STA) です。
+'@
+    '-Mta'               = @'
+-Mta
+マルチスレッド アパートメントを使用して、シェルを起動します。
+'@
+    '-PSConsoleFile'     = @'
+-PSConsoleFile <file> | -Version <version>
+指定された PowerShell コンソール ファイルを読み込みます。コンソール ファイルの作成には、PowerShell の Export-Console を使用します。
+'@
+    <# 
+    '-Version'=@'
+-Version <version>
+指定されたバージョンの Windows PowerShell を起動します。
+このパラメーターでバージョン番号 ("-version 2.0" など) を入力します。
+'@#>
+    #endregion
+    <#
+''=@'
+'@
 # powershell / pwsh.exe different
 [-Version]
 
@@ -101,6 +151,10 @@ PowerShell プロファイルを読み込みません。
 # pwsh.exe only
 [-Interactive]
 [-CustomPipeName <string>]
+Specifies the name to use for an additional IPC server (named pipe) used for debugging and other cross-process communication. This offers a predictable mechanism for connecting to other PowerShell instances. Typically used with the CustomPipeName parameter on Enter-PSHostProcess.
+
+This parameter was introduced in PowerShell 6.2.
+
 [-SettingsFile <SettingsFilePath>]
 [-WorkingDirectory <directoryPath>]
 
